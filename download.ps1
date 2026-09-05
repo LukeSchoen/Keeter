@@ -2,21 +2,24 @@ $ErrorActionPreference = 'Stop'
 
 $AppDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RootDir = Split-Path -Parent $AppDir
-$BundleName = 'parakeet-v0.3.2-bin-win-cpu-x64'
+$BundleName = 'parakeet-v0.5.0-bin-win-cpu-x64'
 $BundleDir = Join-Path $RootDir $BundleName
 $ZipPath = Join-Path $RootDir "$BundleName.zip"
 $CliPath = Join-Path $BundleDir 'parakeet-cli.exe'
 $ModelDir = Join-Path $BundleDir 'models'
-$ModelName = 'tdt-0.6b-v3-q8_0.gguf'
+$ModelName = 'tdt-0.6b-v2-q8_0.gguf'
 $ModelPath = Join-Path $ModelDir $ModelName
 
-$BundleUrl = 'https://github.com/mudler/parakeet.cpp/releases/download/v0.3.2/parakeet-v0.3.2-bin-win-cpu-x64.zip'
-$ModelUrl = "https://huggingface.co/mudler/parakeet-cpp-gguf/resolve/main/$ModelName`?download=true"
+$BundleUrl = 'https://github.com/mudler/parakeet.cpp/releases/download/v0.5.0/parakeet-v0.5.0-bin-win-cpu-x64.zip'
+$ModelRevision = 'bf0af9f425fa01809cadec671b3cb672709d13e9'
+$ModelSha256 = '2027e2e1a4dc60ccdd8558f93b15e7c0db4ef8895b4e82e889f3a6275d8119c6'
+$ModelUrl = "https://huggingface.co/mudler/parakeet-cpp-gguf/resolve/$ModelRevision/$ModelName`?download=true"
 
 function Get-File {
     param(
         [Parameter(Mandatory = $true)][string]$Url,
-        [Parameter(Mandatory = $true)][string]$Path
+        [Parameter(Mandatory = $true)][string]$Path,
+        [string]$Sha256 = ''
     )
 
     $parent = Split-Path -Parent $Path
@@ -30,7 +33,10 @@ function Get-File {
     }
 
     Write-Host "Downloading $Url"
-    Invoke-WebRequest -Uri $Url -OutFile $partial
+    Invoke-WebRequest -UseBasicParsing -Uri $Url -OutFile $partial
+    if ($Sha256 -and (Get-FileHash -LiteralPath $partial -Algorithm SHA256).Hash -ne $Sha256) {
+        throw "Checksum mismatch for $Path"
+    }
 
     if (Test-Path -LiteralPath $Path) {
         Remove-Item -LiteralPath $Path -Force
@@ -49,7 +55,7 @@ if (-not (Test-Path -LiteralPath $CliPath)) {
 }
 
 if (-not (Test-Path -LiteralPath $ModelPath)) {
-    Get-File -Url $ModelUrl -Path $ModelPath
+    Get-File -Url $ModelUrl -Path $ModelPath -Sha256 $ModelSha256
 }
 
 if (-not (Test-Path -LiteralPath $ModelPath)) {

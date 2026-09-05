@@ -60,8 +60,8 @@ MMRESULT WINAPI waveInStop(HWAVEIN);
 MMRESULT WINAPI waveInReset(HWAVEIN);
 MMRESULT WINAPI waveInClose(HWAVEIN);
 
-#define PARAKEET_CLI_REL "..\\parakeet-v0.3.2-bin-win-cpu-x64\\parakeet-cli.exe"
-#define PARAKEET_MODEL_REL "..\\parakeet-v0.3.2-bin-win-cpu-x64\\models\\tdt-0.6b-v3-q8_0.gguf"
+#define PARAKEET_CLI_REL "..\\parakeet-v0.5.0-bin-win-cpu-x64\\parakeet-cli.exe"
+#define PARAKEET_MODEL_REL "..\\parakeet-v0.5.0-bin-win-cpu-x64\\models\\tdt-0.6b-v2-q8_0.gguf"
 #define DOWNLOAD_CMD_NAME "download.cmd"
 #define SAMPLE_RATE 16000
 #define MAX_SAMPLE_RATE 48000
@@ -173,7 +173,7 @@ static void load_options(Options *options) {
     if (!f) {
         f = fopen(options->ini_path, "wb");
         if (f) {
-            fputs("[debug]\r\nsaveWav=0\r\n\r\n[parakeet]\r\ncli=..\\parakeet-v0.3.2-bin-win-cpu-x64\\parakeet-cli.exe\r\nmodel=..\\parakeet-v0.3.2-bin-win-cpu-x64\\models\\tdt-0.6b-v3-q8_0.gguf\r\n", f);
+            fputs("[debug]\r\nsaveWav=0\r\n\r\n[parakeet]\r\ncli=..\\parakeet-v0.5.0-bin-win-cpu-x64\\parakeet-cli.exe\r\nmodel=..\\parakeet-v0.5.0-bin-win-cpu-x64\\models\\tdt-0.6b-v2-q8_0.gguf\r\n", f);
             fclose(f);
             sprintf(msg, "Created options file: %s", options->ini_path);
             log_line(msg);
@@ -629,6 +629,18 @@ int main(int argc, char **argv) {
     fflush(stdout);
     if (argc > 1 && strcmp(argv[1], "--mic-test") == 0) return mic_test();
     load_options(&options);
+    if (argc > 1 && strcmp(argv[1], "--transcribe-test") == 0) {
+        char *text;
+        if (argc != 3) {
+            log_line("Usage: keeter.exe --transcribe-test <audio.wav>");
+            return 1;
+        }
+        text = transcribe_file(argv[2], &options);
+        if (!text) return 1;
+        puts(text);
+        free(text);
+        return 0;
+    }
     ensure_parakeet_assets(&options);
     GetTempPathA(sizeof(wav_path), wav_path);
     strcat(wav_path, "keeter_capture.wav");
